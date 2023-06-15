@@ -1,3 +1,5 @@
+import logging
+
 import pandas as pd
 from src.config import *
 import pinecone
@@ -36,14 +38,18 @@ def get_clean_text(text):
 
 
 def split_text(text, max_tokens=MAX_TOKENS_PER_CHUNK):
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=max_tokens,
-        chunk_overlap=max_tokens // 10,
-        length_function=len,
-    )
-    chunks = text_splitter.split_text(text)[:2]
-    LOGGER.log(f'Text split into: {chunks[:2]} ..... {chunks[-2:]}')
-    return chunks
+    if text != "":
+        text_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=max_tokens,
+            chunk_overlap=max_tokens // 10,
+            length_function=len,
+        )
+        chunks = text_splitter.split_text(text)
+        LOGGER.info(f'Text split into {len(chunks)} parts')
+        LOGGER.info(f'text: {text}')
+        return chunks if len(chunks) > 1 else chunks[0]
+    else:
+        return ""
 
 
 def get_clean_json(json_file):
@@ -62,12 +68,17 @@ def get_clean_json(json_file):
         pass
     meta_data_df["es_id"] = df["_id"]
     meta_data_df["clean_text"] = meta_data_df["body"].apply(get_clean_text)
-    meta_data_df["clean_text"] = meta_data_df["clean_text"].apply(split_text)
+    try:
+        meta_data_df["clean_text"] = meta_data_df["clean_text"].apply(split_text)
+    except:
+        LOGGER.error(f'can"t apply split text')
+        exit(1)
     meta_data_df = meta_data_df[meta_data_df['clean_text'] != ""]
     csv_output_path = f"{filename}_refined.csv"
     json_output_path = f"{filename}_refined.json"
     meta_data_df.to_csv(csv_output_path)
     meta_data_df.to_json(json_output_path, orient="records")
+    LOGGER.error("Doesn't reach here")
     LOGGER.info("Preprocessed the json file")
     return json_output_path, csv_output_path
 
