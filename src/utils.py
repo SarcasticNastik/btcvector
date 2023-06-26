@@ -77,6 +77,8 @@ def split_text(text, max_tokens=MAX_TOKENS_PER_CHUNK):
             length_function=len,
         )
         chunks = text_splitter.split_text(text)
+        if len(chunks) == 0:
+            return ""
         LOGGER.info(f"Text split into {len(chunks)} parts")
         return chunks if len(chunks) > 1 else chunks[0]
     else:
